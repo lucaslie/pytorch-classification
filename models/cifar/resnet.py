@@ -11,7 +11,8 @@ import torch.nn as nn
 import math
 
 
-__all__ = ['resnet']
+__all__ = ['resnet', 'resnet20', 'resnet32', 'resnet44', 'resnet56',
+           'resnet110']
 
 def conv3x3(in_planes, out_planes, stride=1):
     "3x3 convolution with padding"
@@ -157,3 +158,23 @@ def resnet(**kwargs):
     Constructs a ResNet model.
     """
     return ResNet(**kwargs)
+
+
+def resnet20(**kwargs):
+    return ResNet(20, **kwargs)
+
+
+def resnet32(**kwargs):
+    return ResNet(32, **kwargs)
+
+
+def resnet44(**kwargs):
+    return ResNet(44, **kwargs)
+
+
+def resnet56(**kwargs):
+    return ResNet(56, **kwargs)
+
+
+def resnet110(**kwargs):
+    return ResNet(110, **kwargs)
