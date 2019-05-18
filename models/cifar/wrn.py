@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-__all__ = ['wrn']
+__all__ = ['wrn', 'wrn16_8', 'wrn28_10', 'wrn40_1', 'wrn40_4']
 
 class BasicBlock(nn.Module):
     def __init__(self, in_planes, out_planes, stride, dropRate=0.0):
@@ -18,8 +18,11 @@ class BasicBlock(nn.Module):
                                padding=1, bias=False)
         self.droprate = dropRate
         self.equalInOut = (in_planes == out_planes)
-        self.convShortcut = (not self.equalInOut) and nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride,
-                               padding=0, bias=False) or None
+        self.downsample = (not self.equalInOut) and nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride,
+                                                              padding=0, bias=False) or None
+        if self.downsample is not None:
+            self.downsample = nn.Sequential(*[self.downsample])
+
     def forward(self, x):
         if not self.equalInOut:
             x = self.relu1(self.bn1(x))
@@ -29,7 +32,7 @@ class BasicBlock(nn.Module):
         if self.droprate > 0:
             out = F.dropout(out, p=self.droprate, training=self.training)
         out = self.conv2(out)
-        return torch.add(x if self.equalInOut else self.convShortcut(x), out)
+        return torch.add(x if self.equalInOut else self.downsample(x), out)
 
 class NetworkBlock(nn.Module):
     def __init__(self, nb_layers, in_planes, out_planes, block, stride, dropRate=0.0):
@@ -54,11 +57,14 @@ class WideResNet(nn.Module):
         self.conv1 = nn.Conv2d(3, nChannels[0], kernel_size=3, stride=1,
                                padding=1, bias=False)
         # 1st block
-        self.block1 = NetworkBlock(n, nChannels[0], nChannels[1], block, 1, dropRate)
+        self.layer1 = NetworkBlock(n, nChannels[0], nChannels[1], block, 1,
+                                   dropRate).layer
         # 2nd block
-        self.block2 = NetworkBlock(n, nChannels[1], nChannels[2], block, 2, dropRate)
+        self.layer2 = NetworkBlock(n, nChannels[1], nChannels[2], block, 2,
+                                   dropRate).layer
         # 3rd block
-        self.block3 = NetworkBlock(n, nChannels[2], nChannels[3], block, 2, dropRate)
+        self.layer3 = NetworkBlock(n, nChannels[2], nChannels[3], block, 2,
+                                   dropRate).layer
         # global average pooling and classifier
         self.bn1 = nn.BatchNorm2d(nChannels[3])
         self.relu = nn.ReLU(inplace=True)
@@ -77,13 +83,14 @@ class WideResNet(nn.Module):
 
     def forward(self, x):
         out = self.conv1(x)
-        out = self.block1(out)
-        out = self.block2(out)
-        out = self.block3(out)
+        out = self.layer1(out)
+        out = self.layer2(out)
+        out = self.layer3(out)
         out = self.relu(self.bn1(out))
         out = F.avg_pool2d(out, 8)
         out = out.view(-1, self.nChannels)
         return self.fc(out)
+
 
 def wrn(**kwargs):
     """
@@ -91,3 +98,31 @@ def wrn(**kwargs):
     """
     model = WideResNet(**kwargs)
     return model
+
+
+def wrn40_1(**kwargs):
+    """
+    WRN, depth 40, widening factor 1
+    """
+    return WideResNet(depth=40, widen_factor=1, **kwargs)
+
+
+def wrn40_4(**kwargs):
+    """
+    WRN, depth 40, widening factor 4
+    """
+    return WideResNet(depth=40, widen_factor=4, **kwargs)
+
+
+def wrn16_8(**kwargs):
+    """
+    WRN, depth 16, widening factor 8
+    """
+    return WideResNet(depth=16, widen_factor=8, **kwargs)
+
+
+def wrn28_10(**kwargs):
+    """
+    WRN, depth 28, widening factor 10
+    """
+    return WideResNet(depth=28, widen_factor=10, **kwargs)
