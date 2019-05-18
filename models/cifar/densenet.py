@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import math
 
 
-__all__ = ['densenet']
+__all__ = ['densenet', 'densenet22', 'densenet100', 'densenet190']
 
 
 from torch.autograd import Variable
@@ -147,3 +147,25 @@ def densenet(**kwargs):
     Constructs a ResNet model.
     """
     return DenseNet(**kwargs)
+
+def densenet22(**kwargs):
+    """
+        DenseNet-BC (L=22, k=12)
+        https://github.com/bearpaw/pytorch-classification/blob/master/TRAINING.md
+        """
+    return densenet(**kwargs)
+
+def densenet100(**kwargs):
+    """
+    DenseNet-BC (L=100, k=12)
+    https://github.com/bearpaw/pytorch-classification/blob/master/TRAINING.md
+    """
+    return densenet(depth=100, growthRate=12, **kwargs)
+
+
+def densenet190(**kwargs):
+    """
+    DenseNet-BC (L=190, k=40)
+    https://github.com/bearpaw/pytorch-classification/blob/master/TRAINING.md
+    """
+    return densenet(depth=190, growthRate=40, **kwargs)
